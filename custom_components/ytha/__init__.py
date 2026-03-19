@@ -7,7 +7,6 @@ import uuid
 from pathlib import Path
 
 from aiohttp import web
-from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant, ServiceCall
@@ -75,11 +74,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up YTHA from a config entry."""
     output_dir = entry.data.get(CONF_OUTPUT_DIR, DEFAULT_OUTPUT_DIR)
-    ffmpeg_manager = get_ffmpeg_manager(hass)
 
     downloader = Downloader(
         hass=hass,
-        ffmpeg_binary=ffmpeg_manager.binary,
         output_dir=output_dir,
     )
 

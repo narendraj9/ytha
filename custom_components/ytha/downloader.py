@@ -19,11 +19,9 @@ class Downloader:
     def __init__(
         self,
         hass: HomeAssistant,
-        ffmpeg_binary: str,
         output_dir: str,
     ) -> None:
         self.hass = hass
-        self._ffmpeg_binary = ffmpeg_binary
         self._output_dir = output_dir
 
     def _fire_event(self, download_id: str, data: dict) -> None:
@@ -51,14 +49,11 @@ class Downloader:
                 })
 
         return {
-            "format": "bestaudio[ext=m4a]/bestaudio[ext!=webm]/bestaudio",
+            # Prefer native m4a (AAC); fall back to any other audio-only stream.
+            # No postprocessors — no ffmpeg required.
+            "format": "bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio",
             "outtmpl": os.path.join(self._output_dir, "%(artist&{} - |)s%(title)s.%(ext)s"),
-            "ffmpeg_location": self._ffmpeg_binary,
             "progress_hooks": [progress_hook],
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "flac",
-            }],
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
@@ -73,9 +68,7 @@ class Downloader:
 
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            base, _ = os.path.splitext(filename)
-            return base + ".flac"
+            return ydl.prepare_filename(info)
 
     async def async_download(
         self,
