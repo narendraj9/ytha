@@ -67,22 +67,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     add_extra_js_url(hass, "/ytha/frontend/ytha-card.js")
 
     # Register as a Lovelace resource so the card shows up in the card picker
-    resources = hass.data["lovelace"].resources
-    if not resources.loaded:
-        await resources.async_load()
-        resources.loaded = True
+    try:
+        resources = hass.data["lovelace"].resources
+        if resources:
+            if not resources.loaded:
+                await resources.async_load()
+                resources.loaded = True
 
-    resource_url = "/ytha/frontend/ytha-card.js"
-    already_added = any(
-        r["url"].startswith(resource_url) for r in resources.async_items()
-    )
-    if not already_added:
-        if isinstance(resources, ResourceStorageCollection):
-            await resources.async_create_item(
-                {"res_type": "module", "url": resource_url}
+            resource_url = "/ytha/frontend/ytha-card.js"
+            already_added = any(
+                r["url"].startswith(resource_url) for r in resources.async_items()
             )
-        else:
-            resources.data.append({"type": "module", "url": resource_url})
+            if not already_added:
+                if isinstance(resources, ResourceStorageCollection):
+                    await resources.async_create_item(
+                        {"res_type": "module", "url": resource_url}
+                    )
+                else:
+                    resources.data.append({"type": "module", "url": resource_url})
+    except Exception as err:
+        _LOGGER.warning("Could not register Lovelace resource (card may need manual resource addition): %s", err)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
