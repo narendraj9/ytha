@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 import logging
-import os
 import uuid
 
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http import StaticPathConfig
-from homeassistant.components.lovelace.resources import ResourceStorageCollection
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant, ServiceCall
 
 from .const import (
     CONF_OUTPUT_DIR,
@@ -19,10 +15,24 @@ from .const import (
     DOMAIN,
 )
 from .downloader import Downloader
+from .frontend import JSModuleRegistration
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register frontend resources once at integration load time."""
+    async def _register_frontend(_event=None) -> None:
+        await JSModuleRegistration(hass).async_register()
+
+    if hass.state == CoreState.running:
+        await _register_frontend()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _register_frontend)
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -58,35 +68,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.async_create_task(_download_and_sync(url=url, download_id=download_id))
 
     hass.services.async_register(DOMAIN, "download_audio", handle_download_audio)
-
-    # Register static path for frontend card
-    frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig("/ytha/frontend", frontend_dir, cache_headers=False)]
-    )
-    add_extra_js_url(hass, "/ytha/frontend/ytha-card.js")
-
-    # Register as a Lovelace resource so the card shows up in the card picker
-    try:
-        resources = hass.data["lovelace"].resources
-        if resources:
-            if not resources.loaded:
-                await resources.async_load()
-                resources.loaded = True
-
-            resource_url = "/ytha/frontend/ytha-card.js"
-            already_added = any(
-                r["url"].startswith(resource_url) for r in resources.async_items()
-            )
-            if not already_added:
-                if isinstance(resources, ResourceStorageCollection):
-                    await resources.async_create_item(
-                        {"res_type": "module", "url": resource_url}
-                    )
-                else:
-                    resources.data.append({"type": "module", "url": resource_url})
-    except Exception as err:
-        _LOGGER.warning("Could not register Lovelace resource (card may need manual resource addition): %s", err)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
