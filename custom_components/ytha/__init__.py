@@ -10,6 +10,7 @@ from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.core import HomeAssistant, ServiceCall
 
 from .const import (
@@ -54,6 +55,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         [StaticPathConfig("/ytha/frontend", frontend_dir, cache_headers=False)]
     )
     add_extra_js_url(hass, "/ytha/frontend/ytha-card.js")
+
+    # Register as a Lovelace resource so the card shows up in the card picker
+    resources = hass.data["lovelace"].resources
+    if not resources.loaded:
+        await resources.async_load()
+        resources.loaded = True
+
+    resource_url = "/ytha/frontend/ytha-card.js"
+    already_added = any(
+        r["url"].startswith(resource_url) for r in resources.async_items()
+    )
+    if not already_added:
+        if isinstance(resources, ResourceStorageCollection):
+            await resources.async_create_item(
+                {"res_type": "module", "url": resource_url}
+            )
+        else:
+            resources.data.append({"type": "module", "url": resource_url})
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
