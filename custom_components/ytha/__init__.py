@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 import uuid
+from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant, ServiceCall
@@ -15,17 +17,36 @@ from .const import (
     DOMAIN,
 )
 from .downloader import Downloader
-from .frontend import JSModuleRegistration
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
 
+_CARD_URL = "/ytha/ytha-card.js"
+_FRONTEND_DIR = Path(__file__).parent / "frontend"
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register frontend resources once at integration load time."""
     async def _register_frontend(_event=None) -> None:
-        await JSModuleRegistration(hass).async_register()
+        try:
+            await hass.http.async_register_static_paths(
+                [StaticPathConfig("/ytha", _FRONTEND_DIR, cache_headers=False)]
+            )
+        except RuntimeError:
+            pass  # already registered
+
+        lovelace = hass.data.get("lovelace")
+        if not lovelace or lovelace.mode != "storage":
+            return
+        if not lovelace.resources.loaded:
+            await lovelace.resources.async_load()
+        existing = {r["url"] for r in lovelace.resources.async_items()}
+        if _CARD_URL not in existing:
+            await lovelace.resources.async_create_item(
+                {"res_type": "module", "url": _CARD_URL}
+            )
+            _LOGGER.info("Registered Lovelace resource: %s", _CARD_URL)
 
     if hass.state == CoreState.running:
         await _register_frontend()
