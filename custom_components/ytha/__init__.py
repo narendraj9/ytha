@@ -39,13 +39,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN]["downloader"] = downloader
 
+    async def _download_and_sync(url: str, download_id: str) -> None:
+        await downloader.async_download(url=url, download_id=download_id)
+        for mass_entry in hass.config_entries.async_entries("mass") or hass.config_entries.async_entries("music_assistant"):
+            if mass_entry.state.value == "loaded":
+                try:
+                    await mass_entry.runtime_data.mass.music.start_sync(
+                        media_types=None, providers=None
+                    )
+                except Exception as err:
+                    _LOGGER.warning("Could not trigger Music Assistant sync: %s", err)
+                break
+
     async def handle_download_audio(call: ServiceCall) -> None:
         """Handle the download_audio service call."""
         url = call.data["url"]
         download_id = uuid.uuid4().hex[:8]
-        hass.async_create_task(
-            downloader.async_download(url=url, download_id=download_id)
-        )
+        hass.async_create_task(_download_and_sync(url=url, download_id=download_id))
 
     hass.services.async_register(DOMAIN, "download_audio", handle_download_audio)
 

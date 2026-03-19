@@ -55,6 +55,10 @@ class Downloader:
             "outtmpl": os.path.join(self._output_dir, "%(artist&{} - |)s%(title)s.%(ext)s"),
             "ffmpeg_location": self._ffmpeg_binary,
             "progress_hooks": [progress_hook],
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "flac",
+            }],
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
@@ -69,7 +73,9 @@ class Downloader:
 
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            return ydl.prepare_filename(info)
+            filename = ydl.prepare_filename(info)
+            base, _ = os.path.splitext(filename)
+            return base + ".flac"
 
     async def async_download(
         self,
