@@ -46,15 +46,14 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     async def _register_frontend(_event=None) -> None:
         lovelace = hass.data.get("lovelace")
-        if not lovelace or lovelace.mode != "storage":
+        resources = getattr(lovelace, "resources", None)
+        if not resources or not hasattr(resources, "async_create_item"):
             return
-        if not lovelace.resources.loaded:
-            await lovelace.resources.async_load()
-        existing = {r["url"] for r in lovelace.resources.async_items()}
+        if not resources.loaded:
+            await resources.async_load()
+        existing = {r["url"] for r in resources.async_items()}
         if _CARD_URL not in existing:
-            await lovelace.resources.async_create_item(
-                {"res_type": "module", "url": _CARD_URL}
-            )
+            await resources.async_create_item({"res_type": "module", "url": _CARD_URL})
             _LOGGER.info("Registered Lovelace resource: %s", _CARD_URL)
 
     if hass.state == CoreState.running:
