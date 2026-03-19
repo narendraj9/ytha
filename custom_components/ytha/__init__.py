@@ -8,6 +8,7 @@ import uuid
 
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, ServiceCall
 
@@ -52,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig("/ytha/frontend", frontend_dir, cache_headers=False)]
     )
+    add_extra_js_url(hass, "/ytha/frontend/ytha-card.js")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
