@@ -45,16 +45,24 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.http.register_view(YthaCardView)
 
     async def _register_frontend(_event=None) -> None:
-        lovelace = hass.data.get("lovelace")
-        resources = getattr(lovelace, "resources", None)
-        if not resources or not hasattr(resources, "async_create_item"):
-            return
-        if not resources.loaded:
-            await resources.async_load()
-        existing = {r["url"] for r in resources.async_items()}
-        if _CARD_URL not in existing:
-            await resources.async_create_item({"res_type": "module", "url": _CARD_URL})
-            _LOGGER.info("Registered Lovelace resource: %s", _CARD_URL)
+        try:
+            lovelace = hass.data.get("lovelace")
+            resources = getattr(lovelace, "resources", None)
+            if not resources or not hasattr(resources, "async_create_item"):
+                return  # YAML mode or lovelace unavailable
+            if not resources.loaded:
+                await resources.async_load()
+            # Snapshot first, then clean up stale /ytha/ entries from old versions
+            existing = list(resources.async_items())
+            for resource in existing:
+                if resource["url"].startswith("/ytha/") and resource["url"] != _CARD_URL:
+                    _LOGGER.info("Removing stale resource: %s", resource["url"])
+                    await resources.async_delete_item(resource["id"])
+            if not any(r["url"] == _CARD_URL for r in existing):
+                await resources.async_create_item({"res_type": "module", "url": _CARD_URL})
+                _LOGGER.info("Registered Lovelace resource: %s", _CARD_URL)
+        except Exception as err:
+            _LOGGER.warning("Could not register Lovelace resource: %s", err)
 
     if hass.state == CoreState.running:
         await _register_frontend()

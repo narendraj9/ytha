@@ -51,7 +51,7 @@ class Downloader:
                 })
 
         return {
-            "format": "bestaudio/best",
+            "format": "bestaudio[ext=m4a]/bestaudio[ext!=webm]/bestaudio",
             "outtmpl": os.path.join(self._output_dir, "%(artist&{} - |)s%(title)s.%(ext)s"),
             "ffmpeg_location": self._ffmpeg_binary,
             "progress_hooks": [progress_hook],
