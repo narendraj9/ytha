@@ -1,0 +1,11 @@
+download_audio:
+  name: Download Audio
+  description: Download the best quality audio from a video URL.
+  fields:
+    url:
+      name: URL
+      description: The video URL to extract audio from.
+      required: true
+      example: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      selector:
+        text:

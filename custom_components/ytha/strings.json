@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "YTHA Audio Downloader",
+        "description": "Configure audio download settings.",
+        "data": {
+          "output_directory": "Output directory"
+        }
+      }
+    },
+    "error": {
+      "invalid_directory": "Directory does not exist or is not writable.",
+      "unknown": "An unexpected error occurred."
+    }
+  },
+  "services": {
+    "download_audio": {
+      "name": "Download Audio",
+      "description": "Download best quality audio from a video URL.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "The video URL to extract audio from."
+        }
+      }
+    }
+  }
+}

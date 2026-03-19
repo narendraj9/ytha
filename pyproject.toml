@@ -1,0 +1,9 @@
+[project]
+name = "ytha"
+version = "0.1.0"
+description = "Home Assistant custom integration to download lossless audio from video URLs"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
