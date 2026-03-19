@@ -6,8 +6,9 @@ import logging
 import uuid
 from pathlib import Path
 
-from homeassistant.components.http import StaticPathConfig
+from aiohttp import web
 from homeassistant.components.ffmpeg import get_ffmpeg_manager
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CoreState, EVENT_HOMEASSISTANT_STARTED, HomeAssistant, ServiceCall
 
@@ -23,19 +24,27 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 _CARD_URL = "/ytha/ytha-card.js"
-_FRONTEND_DIR = Path(__file__).parent / "frontend"
+_CARD_FILE = Path(__file__).parent / "frontend" / "ytha-card.js"
+
+
+class YthaCardView(HomeAssistantView):
+    """Serve ytha-card.js with correct MIME type."""
+    url = _CARD_URL
+    name = "ytha_card_js"
+    requires_auth = False
+
+    async def get(self, request):
+        return web.Response(
+            body=_CARD_FILE.read_bytes(),
+            content_type="application/javascript",
+        )
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register frontend resources once at integration load time."""
-    async def _register_frontend(_event=None) -> None:
-        try:
-            await hass.http.async_register_static_paths(
-                [StaticPathConfig("/ytha", _FRONTEND_DIR, cache_headers=False)]
-            )
-        except RuntimeError:
-            pass  # already registered
+    hass.http.register_view(YthaCardView)
 
+    async def _register_frontend(_event=None) -> None:
         lovelace = hass.data.get("lovelace")
         if not lovelace or lovelace.mode != "storage":
             return
