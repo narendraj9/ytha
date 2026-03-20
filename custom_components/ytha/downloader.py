@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from .const import EVENT_DOWNLOAD_PROGRESS
 
 _LOGGER = logging.getLogger(__name__)
+_AGE_LIMIT_MAX = 99  # High enough to include effectively all extractor age ratings.
 
 
 class Downloader:
@@ -52,9 +53,10 @@ class Downloader:
             # Prefer native m4a (AAC); fall back to any other audio-only stream.
             # No postprocessors — no ffmpeg required.
             "format": "bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio",
-            # Use yt-dlp restriction bypass features where available.
+            # Use yt-dlp restriction bypass features where available:
+            # geo-restrictions, age-restrictions, and YouTube access limitations.
             "geo_bypass": True,
-            "age_limit": 99,
+            "age_limit": _AGE_LIMIT_MAX,
             "extractor_args": {
                 "youtube": {
                     "player_client": ["android", "web"],
