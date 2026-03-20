@@ -52,6 +52,14 @@ class Downloader:
             # Prefer native m4a (AAC); fall back to any other audio-only stream.
             # No postprocessors — no ffmpeg required.
             "format": "bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio",
+            # Use yt-dlp restriction bypass features where available.
+            "geo_bypass": True,
+            "age_limit": 99,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                }
+            },
             "outtmpl": os.path.join(self._output_dir, "%(artist&{} - |)s%(title)s.%(ext)s"),
             "progress_hooks": [progress_hook],
             "noplaylist": True,

@@ -16,7 +16,6 @@ def downloader(hass: HomeAssistant) -> Downloader:
     """Create a downloader instance."""
     return Downloader(
         hass=hass,
-        ffmpeg_binary="/usr/bin/ffmpeg",
         output_dir="/media/ytha",
     )
 
@@ -25,10 +24,12 @@ def test_build_ydl_opts(downloader: Downloader) -> None:
     """Test that yt-dlp options are correctly built."""
     opts = downloader._build_ydl_opts("test-id")
 
-    assert opts["format"] == "bestaudio/best"
+    assert opts["format"] == "bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio"
     assert opts["noplaylist"] is True
-    assert opts["ffmpeg_location"] == "/usr/bin/ffmpeg"
     assert opts["outtmpl"] == "/media/ytha/%(artist&{} - |)s%(title)s.%(ext)s"
+    assert opts["geo_bypass"] is True
+    assert opts["age_limit"] == 99
+    assert opts["extractor_args"] == {"youtube": {"player_client": ["android", "web"]}}
     assert "extract_audio" not in opts
 
 
